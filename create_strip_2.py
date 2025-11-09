@@ -96,18 +96,16 @@ class Mobius_stair:
         dir_vector_pos = om.MVector(*normal_direction_pos).normalize()
         dir_vector_neg = om.MVector(*normal_direction_neg).normalize()
         threshold = 0.5
-        bounce_faces = []
+        self.bounce_faces = []
 
         for face in range(num_faces):
             normal = stairs_obj.getPolygonNormal(face, om.MSpace.kWorld).normalize()
             dot_pos = normal * dir_vector_pos
             dot_neg = normal * dir_vector_neg
             if dot_pos >= threshold:
-                bounce_faces.append(face)
+                self.bounce_faces.append(face)
             elif dot_neg >= threshold:
-                bounce_faces.append(face)
-
-        return bounce_faces
+                self.bounce_faces.append(face)
 
         cmds.nonLinear(self.stairs, type="twist", startAngle=180)
         cmds.nonLinear(self.stairs, type="bend", curvature=180)
@@ -124,38 +122,27 @@ class Mobius_stair:
             self.stairs, apply=True, translate=True, rotate=True, scale=True
         )
 
-    def get_face_center(self, face_index):
+        return self.bounce_faces
+
+    def get_face_center(self):
         stairs_obj = self.select_stairs_mesh()
+        self.centers = []
 
         # Get vertex indices for the face
-        vert_ids = stairs_obj.getPolygonVertices(face_index)
+        for face in self.bounce_faces:
+            vert_ids = stairs_obj.getPolygonVertices(face)
 
-        # Get world positions of the vertices
-        points = [stairs_obj.getPoint(v, om.MSpace.kWorld) for v in vert_ids]
+            # Get world positions of the vertices
+            points = [stairs_obj.getPoint(v, om.MSpace.kWorld) for v in vert_ids]
 
-        # Compute average
-        x = sum(p.x for p in points) / len(points)
-        y = sum(p.y for p in points) / len(points)
-        z = sum(p.z for p in points) / len(points)
+            # Compute average
+            x = sum(p.x for p in points) / len(points)
+            y = sum(p.y for p in points) / len(points)
+            z = sum(p.z for p in points) / len(points)
 
-        face_center = [x, y, z]
-
-        return face_center
-
-    def get_all_face_center(self):
-        # Get the DAG path for the mesh shape
-        sel = om.MSelectionList()
-        sel.add(self.name)
-        dag = sel.getDagPath(0)
-
-        # Make sure it's a mesh
-        mesh_fn = om.MFnMesh(dag)
-
-        num_faces = mesh_fn.numPolygons
-
-        face_certer_list = []
-        for face_index in range(num_faces):
-            self.get_face_center(face_index)
+            face_center = [x, y, z]
+            self.centers.append(face_center)
+        print(self.centers)
 
 
 class Ball:
@@ -281,3 +268,4 @@ class Ball:
 
 my_stair = Mobius_stair()
 my_stair.make_strip()
+my_stair.get_face_center()
