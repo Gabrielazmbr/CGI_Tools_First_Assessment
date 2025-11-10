@@ -378,3 +378,8 @@ class Ball:
 my_stair = Mobius_stair()
 my_stair.make_strip()
 my_stair.get_face_center()
+my_stair.get_face_normal()
+bolita = Ball(1, "BouncingBall")
+bolita.ball_rig()
+bolita.bounce_path(my_stair)
+bolita.bounce(my_stair)
