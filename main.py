@@ -14,6 +14,7 @@ def main():
     bolita = Ball(1, "BouncingBall")
     bolita.ball_rig()
     bolita.bounce_path(my_stair)
+    bolita.line_on_path()
     bolita.bounce(my_stair)
 
 
