@@ -18,7 +18,7 @@ class Ball:
         cmds.CenterPivot(self.ball)
         cmds.DeleteHistory(self.ball)
         cmds.makeIdentity(self.ball, apply=True, translate=True, rotate=True, scale=True)
-
+        """
     def ball_rig(self):
         # Create the rotate and scale control curve
         self.ctrl_grp = cmds.circle(name="ctrl_grp", normal=(0, 0.5, 0), radius=2)[0]
@@ -56,6 +56,34 @@ class Ball:
         cmds.parent(self.squashHandle, self.squash_ctrl)
         cmds.parent(self.squash_ctrl, self.ctrl_grp)
         cmds.parent(self.rotate_ctrl, self.ctrl_grp)
+
+        return self.ctrl_grp
+        """
+
+    def ball_rig(self):
+        # Create the rotate and scale control curve
+        self.ctrl_grp = cmds.circle(name="ctrl_grp", normal=(0, 0.5, 0), radius=2)[0]
+
+        self.squash_ctrl = cmds.circle(name="squash_ctrl", normal=(0, 0.5, 0), radius=1.5)[0]
+        cmds.move(0, 0.8, 0, self.squash_ctrl)
+
+        self.rotate_ctrl = cmds.circle(name="rotate_ctrl", normal=(0, 0.3, 0), radius=1.2)[0]
+        cmds.move(0, 1.3, 0, self.rotate_ctrl)
+
+        # Delete History circles
+        cmds.DeleteHistory(self.ctrl_grp)
+        cmds.DeleteHistory(self.squash_ctrl)
+        cmds.DeleteHistory(self.rotate_ctrl)
+
+        # Freeze transformations circles
+        cmds.makeIdentity(self.ctrl_grp, apply=True, translate=True, rotate=True, scale=True)
+        cmds.makeIdentity(self.squash_ctrl, apply=True, translate=True, rotate=True, scale=True)
+        cmds.makeIdentity(self.rotate_ctrl, apply=True, translate=True, rotate=True, scale=True)
+
+        # Parent the geometry under the control
+        cmds.parent(self.ball, self.rotate_ctrl)
+        cmds.parent(self.rotate_ctrl, self.squash_ctrl)
+        cmds.parent(self.squash_ctrl, self.ctrl_grp)
 
         return self.ctrl_grp
 
@@ -113,7 +141,7 @@ class Ball:
         return curve
 
     def align_pivot_to_face_normal(self, normal, up_axis="y"):
-        # Create a rotation that aligns up axis with the face normal
+        # Create a rotation that aligns up axis with the face normal (robust).
         if up_axis.lower() == "x":
             up = om.MVector(1, 0, 0)
         elif up_axis.lower() == "y":
@@ -121,24 +149,76 @@ class Ball:
         else:
             up = om.MVector(0, 0, 1)
 
-        # Compute rotation between vectors
-        rot_axis = up ^ normal  # cross product
+        # Ensure normal is MVector and normalized
+        if not isinstance(normal, om.MVector):
+            normal = om.MVector(normal)
+        normal = normal.normal()
+
+        # Compute rotation axis/angle
+        rot_axis = up ^ normal
         rot_angle = up.angle(normal)
 
-        # Convert to quaternion and then to Euler
-        quat = om.MQuaternion(rot_angle, rot_axis.normal())
-        euler = quat.asEulerRotation()
+        # Handle degenerate axis
+        eps = 1e-8
+        if rot_axis.length() < eps:
+            dot = up * normal
+            if dot > 0.0:
+                quat = om.MQuaternion()  # identity
+            else:
+                # 180 degrees around a stable perpendicular axis
+                test_axis = up ^ om.MVector(1, 0, 0)
+                if test_axis.length() < eps:
+                    test_axis = up ^ om.MVector(0, 0, 1)
+                quat = om.MQuaternion(math.pi, test_axis.normal())
+        else:
+            quat = om.MQuaternion(rot_angle, rot_axis.normal())
 
-        # Apply rotation to the sphere
-        cmds.xform(
-            self.ctrl_grp,
-            rotation=(
-                om.MAngle(euler.x).asDegrees(),
-                om.MAngle(euler.y).asDegrees(),
-                om.MAngle(euler.z).asDegrees(),
-            ),
-            worldSpace=True,
-        )
+        # Keep quaternion sign continuous relative to previous quaternion (if present)
+        prev_q = getattr(self, "prev_quat", None)
+        if prev_q is not None:
+            dotq = prev_q.x * quat.x + prev_q.y * quat.y + prev_q.z * quat.z + prev_q.w * quat.w
+            if dotq < 0.0:
+                quat = om.MQuaternion(-quat.x, -quat.y, -quat.z, -quat.w)
+        self.prev_quat = om.MQuaternion(quat.x, quat.y, quat.z, quat.w)
+
+        # Convert to Euler rotation (radians -> degrees)
+        euler = quat.asEulerRotation()
+        new_degs = [
+            om.MAngle(euler.x).asDegrees(),
+            om.MAngle(euler.y).asDegrees(),
+            om.MAngle(euler.z).asDegrees(),
+        ]
+
+        # Get previous Euler to make angles continuous.
+        prev_euler = getattr(self, "last_euler", None)
+        if prev_euler is None:
+            try:
+                prev_euler = list(cmds.getAttr(f"{self.ctrl_grp}.rotate")[0])
+            except Exception:
+                prev_euler = [0.0, 0.0, 0.0]
+
+        # Adjust angles by +/-360 to minimize delta to previous
+        adjusted = []
+        for n, p in zip(new_degs, prev_euler):
+            diff = n - p
+            # normalize diff into [-180, 180]
+            while diff > 180.0:
+                n -= 360.0
+                diff = n - p
+            while diff < -180.0:
+                n += 360.0
+                diff = n - p
+            adjusted.append(n)
+
+        # Apply adjusted rotation to the control (explicit values)
+        cmds.setAttr(f"{self.ctrl_grp}.rotateX", adjusted[0])
+        cmds.setAttr(f"{self.ctrl_grp}.rotateY", adjusted[1])
+        cmds.setAttr(f"{self.ctrl_grp}.rotateZ", adjusted[2])
+
+        # Store for next call
+        self.last_euler = adjusted
+
+        return tuple(adjusted)
 
     def bounce(self, mobius_stair):
         start_frame = 1
@@ -154,47 +234,48 @@ class Ball:
             cmds.setKeyframe(self.ctrl_grp, attribute="translateZ", t=frame, v=tri[1][2])
             cmds.keyTangent(self.ctrl_grp, e=True, weightedTangents=True)
             cmds.keyTangent(self.ctrl_grp, e=True, a=True, t=(frame,), outWeight=8)
-            cmds.setKeyframe(self.ctrl_grp, attribute="scaleY", t=frame, v=1)
-            cmds.setKeyframe(self.ctrl_grp, attribute="scaleX", t=frame, v=1)
-            cmds.setKeyframe(self.ctrl_grp, attribute="scaleZ", t=frame, v=1)
+            # Align pivot to face normal
+            face_normal = mobius_stair.faces_normals_ordered[i % len(mobius_stair.faces_normals_ordered)]
+            normal_vector = om.MVector(*face_normal)
+            adjusted = self.align_pivot_to_face_normal(normal_vector, up_axis="y")
+            # Keyframe the rotation
+            cmds.setKeyframe(self.ctrl_grp, attribute="rotateX", t=frame, v=adjusted[0])
+            cmds.setKeyframe(self.ctrl_grp, attribute="rotateY", t=frame, v=adjusted[1])
+            cmds.setKeyframe(self.ctrl_grp, attribute="rotateZ", t=frame, v=adjusted[2])
+            # Initial scale
+            cmds.setKeyframe(self.squash_ctrl, attribute="scaleY", t=frame, v=1)
+            cmds.setKeyframe(self.squash_ctrl, attribute="scaleX", t=frame, v=1)
+            cmds.setKeyframe(self.squash_ctrl, attribute="scaleZ", t=frame, v=1)
 
             # Approach to ground
             frame = int(frame + time_gap / 2 - 1)
-            cmds.setKeyframe(self.ctrl_grp, attribute="scaleY", t=frame, v=stretch)
-            cmds.setKeyframe(self.ctrl_grp, attribute="scaleX", t=frame, v=squash)
-            cmds.setKeyframe(self.ctrl_grp, attribute="scaleZ", t=frame, v=squash)
+            cmds.setKeyframe(self.squash_ctrl, attribute="scaleY", t=frame, v=stretch)
+            cmds.setKeyframe(self.squash_ctrl, attribute="scaleX", t=frame, v=squash)
+            cmds.setKeyframe(self.squash_ctrl, attribute="scaleZ", t=frame, v=squash)
 
             # Ground
             frame = int(frame + 1)
             cmds.setKeyframe(self.ctrl_grp, attribute="translateX", t=frame, v=tri[2][0])
             cmds.setKeyframe(self.ctrl_grp, attribute="translateY", t=frame, v=tri[2][1])
             cmds.setKeyframe(self.ctrl_grp, attribute="translateZ", t=frame, v=tri[2][2])
-
+            cmds.keyTangent(self.ctrl_grp, attribute="translateY", t=(frame,), itt="linear", ott="linear")
             # Align pivot to face normal
             face_normal = mobius_stair.faces_normals_ordered[i % len(mobius_stair.faces_normals_ordered)]
             normal_vector = om.MVector(*face_normal)
-            self.align_pivot_to_face_normal(normal_vector, up_axis="y")
-            # Keyframe the rotation
-            cmds.setKeyframe(self.ctrl_grp, attribute="rotateX", t=frame)
-            cmds.setKeyframe(self.ctrl_grp, attribute="rotateY", t=frame)
-            cmds.setKeyframe(self.ctrl_grp, attribute="rotateZ", t=frame)
-
+            adjusted = self.align_pivot_to_face_normal(normal_vector, up_axis="y")
+            # Keyframe the rotation using explicit continuous values (prevents Euler wrap jumps)
+            cmds.setKeyframe(self.ctrl_grp, attribute="rotateX", t=frame, v=adjusted[0])
+            cmds.setKeyframe(self.ctrl_grp, attribute="rotateY", t=frame, v=adjusted[1])
+            cmds.setKeyframe(self.ctrl_grp, attribute="rotateZ", t=frame, v=adjusted[2])
             # Squash in ground
-            cmds.setKeyframe(self.ctrl_grp, attribute="scaleY", t=frame, v=squash)
-            cmds.setKeyframe(self.ctrl_grp, attribute="scaleX", t=frame, v=stretch)
-            cmds.setKeyframe(self.ctrl_grp, attribute="scaleZ", t=frame, v=stretch)
-            cmds.keyTangent(
-                self.ctrl_grp,
-                attribute="translateY",
-                t=(frame,),
-                itt="linear",
-                ott="linear",
-            )
+            cmds.setKeyframe(self.squash_ctrl, attribute="scaleY", t=frame, v=squash)
+            cmds.setKeyframe(self.squash_ctrl, attribute="scaleX", t=frame, v=stretch)
+            cmds.setKeyframe(self.squash_ctrl, attribute="scaleZ", t=frame, v=stretch)
 
             # Leaves ground
             frame = int(frame + 1)
-            cmds.setKeyframe(self.ctrl_grp, attribute="scaleY", t=frame, v=stretch)
-            cmds.setKeyframe(self.ctrl_grp, attribute="scaleX", t=frame, v=squash)
-            cmds.setKeyframe(self.ctrl_grp, attribute="scaleZ", t=frame, v=squash)
+            cmds.setKeyframe(self.squash_ctrl, attribute="scaleY", t=frame, v=stretch)
+            cmds.setKeyframe(self.squash_ctrl, attribute="scaleX", t=frame, v=squash)
+            cmds.setKeyframe(self.squash_ctrl, attribute="scaleZ", t=frame, v=squash)
 
             frame = int(frame + time_gap / 2)
