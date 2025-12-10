@@ -11,11 +11,11 @@ def main():
     my_stair.get_face_center()
     my_stair.get_face_normal()
 
-    bolita = Ball(1, "BouncingBall")
-    bolita.ball_rig()
-    bolita.bounce_path(my_stair)
-    bolita.line_on_path()
-    bolita.bounce(my_stair)
+    ball = Ball(1, "BouncingBall")
+    ball.ball_rig()
+    ball.bounce_path(my_stair)
+    # ball.line_on_path()
+    ball.bounce(my_stair)
 
 
 if __name__ == "__main__":
