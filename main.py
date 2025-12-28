@@ -14,7 +14,7 @@ def main():
     ball = Ball(1, "BouncingBall")
     ball.ball_rig()
     ball.bounce_path(my_stair)
-    # ball.line_on_path()
+    ball.line_on_path()
     ball.bounce(my_stair)
 
 

@@ -74,33 +74,28 @@ class Ball:
 
     def bounce_path(self, mobius_stair):
         self.triangles = []
-        self.triangle_normals = []
         verts = mobius_stair.centers_ordered
-        verts_stepped = verts[::2]  # -> 10 sec version
         normals = mobius_stair.faces_normals_ordered
-        normals_stepped = normals[::2]  # -> 10 sec version
-        self.height = 10  # 8 -> 25 sec version , 10 -> 10 sec version
+        self.height = 8
         for cycle in range(5):
-            for i in range(len(verts_stepped) - 1):
-                j = (i + 1) % len(verts_stepped)
-                A = verts_stepped[i]
-                C = verts_stepped[j]
-                nA = normals_stepped[i]
-                nC = normals_stepped[j]
+            for i in range(len(verts) - 1):
+                j = (i + 1) % len(verts)
+                A = verts[i]
+                C = verts[j]
+                nA = normals[i]
+                nC = normals[j]
                 B = self.apex_from_face_normals(A, C, nA, nC, self.height)
                 self.triangles.append((A, B, C))
-                self.triangle_normals.append((nA, nC))
 
             # Add final triangle
-            A = verts_stepped[-1]
-            C = verts_stepped[0]
-            nA = normals_stepped[-1]
-            nC = normals_stepped[0]
+            A = verts[-1]
+            C = verts[0]
+            nA = normals[-1]
+            nC = normals[0]
 
             if not np.allclose(A, C):
                 B = self.apex_from_face_normals(A, C, nA, nC, self.height)
                 self.triangles.append((A, B, C))
-                self.triangle_normals.append((nA, nC))
 
     def line_on_path(self, curve_name="path"):
         """
@@ -115,7 +110,7 @@ class Ball:
         print(self.triangles)
         print(flat_pts)
         # create the curve
-        curve = cmds.curve(name=curve_name, p=flat_pts[0:130], degree=1)
+        curve = cmds.curve(name=curve_name, p=flat_pts[0:130])
 
         return curve
 
@@ -167,7 +162,6 @@ class Ball:
 
         # Convert to Euler rotation
         euler = quat.asEulerRotation()
-
         new_degs = [
             om.MAngle(euler.x).asDegrees(),
             om.MAngle(euler.y).asDegrees(),
@@ -208,7 +202,7 @@ class Ball:
     def bounce(self, mobius_stair):
         start_frame = 1
         frame = start_frame
-        time_gap = 12  # 15 -> 25 sec version , 12 -> 10 sec version
+        time_gap = 15
         squash = 0.8
         stretch = 1.2
 
@@ -224,10 +218,17 @@ class Ball:
                 self.ctrl_grp, attribute="translateZ", t=frame, v=tri[1][2]
             )
             cmds.keyTangent(self.ctrl_grp, e=True, weightedTangents=True)
-            cmds.keyTangent(
-                self.ctrl_grp, e=True, a=True, t=(frame,), outWeight=6
-            )  # 8 -> 25 sec version , 6 -> 10 sec version
-
+            cmds.keyTangent(self.ctrl_grp, e=True, a=True, t=(frame,), outWeight=8)
+            # Align pivot to face normal
+            face_normal = mobius_stair.faces_normals_ordered[
+                i % len(mobius_stair.faces_normals_ordered)
+            ]
+            normal_vector = om.MVector(*face_normal)
+            adjusted = self.align_pivot_to_face_normal(normal_vector, up_axis="y")
+            # Keyframe the rotation
+            cmds.setKeyframe(self.ctrl_grp, attribute="rotateX", t=frame, v=adjusted[0])
+            cmds.setKeyframe(self.ctrl_grp, attribute="rotateY", t=frame, v=adjusted[1])
+            cmds.setKeyframe(self.ctrl_grp, attribute="rotateZ", t=frame, v=adjusted[2])
             # Initial scale
             cmds.setKeyframe(self.scale_ctrl, attribute="scaleY", t=frame, v=1)
             cmds.setKeyframe(self.scale_ctrl, attribute="scaleX", t=frame, v=1)
@@ -257,24 +258,16 @@ class Ball:
                 itt="linear",
                 ott="linear",
             )
-            nA, nC = self.triangle_normals[i]
-            face_normal = nC
+            # Align pivot to face normal
+            face_normal = mobius_stair.faces_normals_ordered[
+                i % len(mobius_stair.faces_normals_ordered)
+            ]
             normal_vector = om.MVector(*face_normal)
-            adjust_rot_ground = self.align_pivot_to_face_normal(
-                normal_vector, up_axis="y"
-            )
-
-            # Keyframe the rotation
-            cmds.setKeyframe(
-                self.ctrl_grp, attribute="rotateX", t=frame, v=adjust_rot_ground[0]
-            )
-            cmds.setKeyframe(
-                self.ctrl_grp, attribute="rotateY", t=frame, v=adjust_rot_ground[1]
-            )
-            cmds.setKeyframe(
-                self.ctrl_grp, attribute="rotateZ", t=frame, v=adjust_rot_ground[2]
-            )
-
+            adjusted = self.align_pivot_to_face_normal(normal_vector, up_axis="y")
+            # Keyframe the rotation using explicit continuous values (prevents Euler wrap jumps)
+            cmds.setKeyframe(self.ctrl_grp, attribute="rotateX", t=frame, v=adjusted[0])
+            cmds.setKeyframe(self.ctrl_grp, attribute="rotateY", t=frame, v=adjusted[1])
+            cmds.setKeyframe(self.ctrl_grp, attribute="rotateZ", t=frame, v=adjusted[2])
             # Squash in ground
             cmds.setKeyframe(self.scale_ctrl, attribute="scaleY", t=frame, v=squash)
             cmds.setKeyframe(self.scale_ctrl, attribute="scaleX", t=frame, v=stretch)
