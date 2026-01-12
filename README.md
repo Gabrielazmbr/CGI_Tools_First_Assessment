@@ -35,6 +35,7 @@ The main goal is to explore geometry-driven animation, where a bouncing ball fol
 - Rotation continuity is preserved across frames
 
 ### Project Structure
+```text
 CGI_Tools_First_Assessment/
 ├── Classes/
 │ ├── Ball.py # Ball creation, rigging, and bounce animation logic
@@ -47,6 +48,7 @@ CGI_Tools_First_Assessment/
 ├── main.py
 ├── pyproject.toml
 └── README.md
+```
 
 ## Experiments & Versions
 - Early prototypes, tests and alternative implementations that show my development process.
