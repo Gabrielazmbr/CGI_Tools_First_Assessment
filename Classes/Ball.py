@@ -72,14 +72,14 @@ class Ball:
         apex = mid + mid_normal * height
         return apex
 
-    def bounce_path(self, mobius_stair):
+    def bounce_path_10sec(self, mobius_stair):
         self.triangles = []
         self.triangle_normals = []
         verts = mobius_stair.centers_ordered
-        verts_stepped = verts[::2]  # -> 10 sec version
+        verts_stepped = verts[::2]  # 10 sec version
         normals = mobius_stair.faces_normals_ordered
-        normals_stepped = normals[::2]  # -> 10 sec version
-        self.height = 10  # 8 -> 25 sec version , 10 -> 10 sec version
+        normals_stepped = normals[::2]  # 10 sec version
+        self.height = 10
         for cycle in range(5):
             for i in range(len(verts_stepped) - 1):
                 j = (i + 1) % len(verts_stepped)
@@ -96,6 +96,34 @@ class Ball:
             C = verts_stepped[0]
             nA = normals_stepped[-1]
             nC = normals_stepped[0]
+
+            if not np.allclose(A, C):
+                B = self.apex_from_face_normals(A, C, nA, nC, self.height)
+                self.triangles.append((A, B, C))
+                self.triangle_normals.append((nA, nC))
+
+    def bounce_path_25sec(self, mobius_stair):
+        self.triangles = []
+        self.triangle_normals = []
+        verts = mobius_stair.centers_ordered
+        normals = mobius_stair.faces_normals_ordered
+        self.height = 8
+        for cycle in range(5):
+            for i in range(len(verts) - 1):
+                j = (i + 1) % len(verts)
+                A = verts[i]
+                C = verts[j]
+                nA = normals[i]
+                nC = normals[j]
+                B = self.apex_from_face_normals(A, C, nA, nC, self.height)
+                self.triangles.append((A, B, C))
+                self.triangle_normals.append((nA, nC))
+
+            # Add final triangle
+            A = verts[-1]
+            C = verts[0]
+            nA = normals[-1]
+            nC = normals[0]
 
             if not np.allclose(A, C):
                 B = self.apex_from_face_normals(A, C, nA, nC, self.height)
@@ -208,7 +236,7 @@ class Ball:
     def bounce(self, mobius_stair):
         start_frame = 1
         frame = start_frame
-        time_gap = 12  # 15 -> 25 sec version , 12 -> 10 sec version
+        time_gap = 15  # 15 -> 25 sec version , 12 -> 10 sec version
         squash = 0.8
         stretch = 1.2
 
@@ -225,7 +253,7 @@ class Ball:
             )
             cmds.keyTangent(self.ctrl_grp, e=True, weightedTangents=True)
             cmds.keyTangent(
-                self.ctrl_grp, e=True, a=True, t=(frame,), outWeight=6
+                self.ctrl_grp, e=True, a=True, t=(frame,), outWeight=8
             )  # 8 -> 25 sec version , 6 -> 10 sec version
 
             # Initial scale
