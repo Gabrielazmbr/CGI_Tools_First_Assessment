@@ -33,3 +33,28 @@ The main goal is to explore geometry-driven animation, where a bouncing ball fol
 - Bounce arcs are computed using triangle paths `(contact → apex → contact)`
 - Squash and stretch is applied on impact and takeoff
 - Rotation continuity is preserved across frames
+
+### Project Structure
+CGI_Tools_First_Assessment/
+├── Classes/
+│ ├── Ball.py # Ball creation, rigging, and bounce animation logic
+│ └── Mobius_Stair.py # Procedural stair generation and face analysis
+│ ├── versions&experiments/ # Experimental and prototype code that shows development process
+├── utils/ 
+│ └── maya_helpers.py # Scene cleanup function
+│ └── run_in_maya.py # Code to run Repo in Maya
+├── media/ # Videos and Images that show development process
+├── main.py
+├── pyproject.toml
+└── README.md
+
+## Experiments & Versions
+- Early prototypes, tests and alternative implementations that show my development process.
+- This files can be copied and paste in Maya Script Editor to see their individual results. 
+
+### How to Run
+1. Open Autodesk Maya.
+2. Make sure Maya’s Python environment can access this repository.
+3. Copy and paste the run_in_maya.py in the python script editor in Maya.
+4. Update the project path.
+5. Hit run.
