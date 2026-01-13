@@ -1,4 +1,10 @@
-#!/usr/bin/env -S uv run --script
+
+
+
+"""
+    Early animation of a floating ball, as I was exploring 
+    keyframe animation inside maya commands and scripting. 
+"""
 
 
 # Create the sphere

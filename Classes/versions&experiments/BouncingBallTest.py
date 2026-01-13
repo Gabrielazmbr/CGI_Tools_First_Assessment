@@ -1,5 +1,11 @@
 import maya.cmds as cmd
 
+"""
+    With this test I was exploring more principles of animation,
+    applying code to accomplish a more natural movement of
+    the bouncing ball.
+"""
+
 
 class Ball:
     def __init__(self, radius, name):
@@ -16,20 +22,14 @@ class Ball:
         mat_name = "the_mat"
         mat = cmd.shadingNode("lambert", asShader=True, name=mat_name)
         cmd.setAttr(mat + ".color", 0.8, 0.4, 0.1, type="double3")
-        sg = cmd.sets(
-            renderable=True, noSurfaceShader=True, empty=True, name=mat_name + "SG"
-        )
+        sg = cmd.sets(renderable=True, noSurfaceShader=True, empty=True, name=mat_name + "SG")
         cmd.connectAttr(mat + ".outColor", sg + ".surfaceShader", f=True)
         cmd.sets(self.ball, e=True, forceElement=sg)
 
     def ball_rig(self):
         # Create the rotate and scale control curve
-        self.rotate_ctrl = cmd.circle(
-            name="rotate_ctrl", normal=(0, 0.5, 0), radius=1.5
-        )[0]
-        self.scale_ctrl = cmd.circle(name="scale_ctrl", normal=(0, 0.5, 0), radius=0.5)[
-            0
-        ]
+        self.rotate_ctrl = cmd.circle(name="rotate_ctrl", normal=(0, 0.5, 0), radius=1.5)[0]
+        self.scale_ctrl = cmd.circle(name="scale_ctrl", normal=(0, 0.5, 0), radius=0.5)[0]
 
         # Match position of control to the ball
         cmd.delete(cmd.pointConstraint(self.ball, self.rotate_ctrl))

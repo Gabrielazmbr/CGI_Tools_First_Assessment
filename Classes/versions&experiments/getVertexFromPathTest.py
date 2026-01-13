@@ -1,10 +1,14 @@
 import maya.cmds as cmds
 
+"""
+    For this test I was trying to get just the vertex involved in the path of my ball.
+    Although this approach later changed, I could also have used vertex instead of
+    faces centers.
+"""
+
 
 class Mobius_stair:
-    def __init__(
-        self, depth=0.5, width=5, height=100, s_depth=1, s_width=2, s_height=40
-    ):
+    def __init__(self, depth=0.5, width=5, height=100, s_depth=1, s_width=2, s_height=40):
         self.depth = depth
         self.width = width
         self.height = height
@@ -34,13 +38,8 @@ class Mobius_stair:
                 bottom_faces.append(f)
 
         face_group = 4
-        top_face_groups = [
-            top_faces[i : i + face_group] for i in range(0, len(top_faces), face_group)
-        ]
-        bottom_face_groups = [
-            bottom_faces[i : i + face_group]
-            for i in range(0, len(bottom_faces), face_group)
-        ]
+        top_face_groups = [top_faces[i : i + face_group] for i in range(0, len(top_faces), face_group)]
+        bottom_face_groups = [bottom_faces[i : i + face_group] for i in range(0, len(bottom_faces), face_group)]
 
         l_scale_z = 0
         step = 0.8
@@ -48,9 +47,7 @@ class Mobius_stair:
         for i, face_range in enumerate(top_face_groups):
             start = face_range[0]
             end = face_range[-1]
-            cmds.polyExtrudeFacet(
-                f"{self.stairs}.f[{start}:{end}]", kft=True, ltz=l_scale_z
-            )
+            cmds.polyExtrudeFacet(f"{self.stairs}.f[{start}:{end}]", kft=True, ltz=l_scale_z)
 
             print(i, l_scale_z)
 
@@ -65,9 +62,7 @@ class Mobius_stair:
         for i, face_range in enumerate(bottom_face_groups):
             start = face_range[0]
             end = face_range[-1]
-            cmds.polyExtrudeFacet(
-                f"{self.stairs}.f[{start}:{end}]", kft=True, ltz=l_scale_z
-            )
+            cmds.polyExtrudeFacet(f"{self.stairs}.f[{start}:{end}]", kft=True, ltz=l_scale_z)
             print(i, l_scale_z)
 
             if i < mid_stairs:
@@ -84,13 +79,9 @@ class Mobius_stair:
         cmds.select(self.stairs)
         cmds.CenterPivot(self.stairs)
         cmds.DeleteHistory(self.stairs)
-        cmds.makeIdentity(
-            self.stairs, apply=True, translate=True, rotate=True, scale=True
-        )
+        cmds.makeIdentity(self.stairs, apply=True, translate=True, rotate=True, scale=True)
         cmds.setAttr(f"{self.stairs}.rotate", 90, 0, 0)
-        cmds.makeIdentity(
-            self.stairs, apply=True, translate=True, rotate=True, scale=True
-        )
+        cmds.makeIdentity(self.stairs, apply=True, translate=True, rotate=True, scale=True)
 
 
 def get_vertex(mesh, start_edge):

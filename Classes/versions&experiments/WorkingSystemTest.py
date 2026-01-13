@@ -2,6 +2,12 @@ import maya.api.OpenMaya as om
 import maya.cmds as cmds
 import numpy as np
 
+"""
+    For this test I was trying to bounce the ball over the stair, making
+    a path out of the stair's faces. The rig, animation and details like
+    squash and stretch should work on top.
+"""
+
 
 class Mobius_stair:
     def __init__(
@@ -54,9 +60,7 @@ class Mobius_stair:
                 bottom_faces.append(f)
 
         top_face_groups = [top_faces[i : i + 1] for i in range(0, len(top_faces), 1)]
-        bottom_face_groups = [
-            bottom_faces[i : i + 1] for i in range(0, len(bottom_faces), 1)
-        ]
+        bottom_face_groups = [bottom_faces[i : i + 1] for i in range(0, len(bottom_faces), 1)]
 
         l_scale_z = 0
         step = 0.8
@@ -64,9 +68,7 @@ class Mobius_stair:
         for i, face_range in enumerate(top_face_groups):
             start = face_range[0]
             end = face_range[-1]
-            cmds.polyExtrudeFacet(
-                f"{self.stairs}.f[{start}:{end}]", kft=True, ltz=l_scale_z
-            )
+            cmds.polyExtrudeFacet(f"{self.stairs}.f[{start}:{end}]", kft=True, ltz=l_scale_z)
 
             if i < mid_stairs:
                 l_scale_z = round(l_scale_z + step, 2)
@@ -79,9 +81,7 @@ class Mobius_stair:
         for i, face_range in enumerate(bottom_face_groups):
             start = face_range[0]
             end = face_range[-1]
-            cmds.polyExtrudeFacet(
-                f"{self.stairs}.f[{start}:{end}]", kft=True, ltz=l_scale_z
-            )
+            cmds.polyExtrudeFacet(f"{self.stairs}.f[{start}:{end}]", kft=True, ltz=l_scale_z)
 
             if i < mid_stairs:
                 l_scale_z = round(l_scale_z + step, 2)
@@ -115,13 +115,9 @@ class Mobius_stair:
         cmds.select(self.stairs)
         cmds.CenterPivot(self.stairs)
         cmds.DeleteHistory(self.stairs)
-        cmds.makeIdentity(
-            self.stairs, apply=True, translate=True, rotate=True, scale=True
-        )
+        cmds.makeIdentity(self.stairs, apply=True, translate=True, rotate=True, scale=True)
         cmds.setAttr(f"{self.stairs}.rotate", 90, 0, 0)
-        cmds.makeIdentity(
-            self.stairs, apply=True, translate=True, rotate=True, scale=True
-        )
+        cmds.makeIdentity(self.stairs, apply=True, translate=True, rotate=True, scale=True)
         return self.bounce_faces
 
     def get_face_center(self):
@@ -145,9 +141,7 @@ class Mobius_stair:
         # Find midpoint
         midpoint = len(self.centers) // 2
         # reordered list
-        self.centers_ordered = (
-            self.centers[:midpoint] + self.centers[: midpoint - 1 : -1]
-        )
+        self.centers_ordered = self.centers[:midpoint] + self.centers[: midpoint - 1 : -1]
         print(self.centers)
         print(self.centers_ordered)
 
@@ -162,9 +156,7 @@ class Mobius_stair:
         # Find midpoint
         midpoint = len(self.faces_normals) // 2
         # reordered list
-        self.faces_normals_ordered = (
-            self.faces_normals[:midpoint] + self.faces_normals[: midpoint - 1 : -1]
-        )
+        self.faces_normals_ordered = self.faces_normals[:midpoint] + self.faces_normals[: midpoint - 1 : -1]
         print(self.faces_normals)
         print(len(self.faces_normals))
         print(self.faces_normals_ordered)
@@ -182,18 +174,12 @@ class Ball:
         cmds.move(pX, pY, pZ, self.ball)
         cmds.CenterPivot(self.ball)
         cmds.DeleteHistory(self.ball)
-        cmds.makeIdentity(
-            self.ball, apply=True, translate=True, rotate=True, scale=True
-        )
+        cmds.makeIdentity(self.ball, apply=True, translate=True, rotate=True, scale=True)
 
     def ball_rig(self):
         # Create the rotate and scale control curve
-        self.rotate_ctrl = cmds.circle(
-            name="rotate_ctrl", normal=(0, 0.5, 0), radius=1.5
-        )[0]
-        self.scale_ctrl = cmds.circle(
-            name="scale_ctrl", normal=(0, 0.5, 0), radius=0.5
-        )[0]
+        self.rotate_ctrl = cmds.circle(name="rotate_ctrl", normal=(0, 0.5, 0), radius=1.5)[0]
+        self.scale_ctrl = cmds.circle(name="scale_ctrl", normal=(0, 0.5, 0), radius=0.5)[0]
 
         # Match position of control to the ball
         cmds.delete(cmds.pointConstraint(self.ball, self.rotate_ctrl))
@@ -218,9 +204,7 @@ class Ball:
             raise ValueError("Zero-length vector")
         return v / n
 
-    def apex_from_avg_vertex_normals(
-        self, A, B, nA, nB, h, fallback_up=np.array([0.0, 0.0, 1.0]), eps=1e-9
-    ):
+    def apex_from_avg_vertex_normals(self, A, B, nA, nB, h, fallback_up=np.array([0.0, 0.0, 1.0]), eps=1e-9):
         # Vec points
         A = np.asarray(A, dtype=float)
         B = np.asarray(B, dtype=float)
@@ -307,15 +291,9 @@ class Ball:
 
         for i, tri in enumerate(self.triangles):
             # Initial height
-            cmds.setKeyframe(
-                self.ctrl_grp, attribute="translateX", t=frame, v=tri[2][0]
-            )
-            cmds.setKeyframe(
-                self.ctrl_grp, attribute="translateY", t=frame, v=tri[2][1]
-            )
-            cmds.setKeyframe(
-                self.ctrl_grp, attribute="translateZ", t=frame, v=tri[2][2]
-            )
+            cmds.setKeyframe(self.ctrl_grp, attribute="translateX", t=frame, v=tri[2][0])
+            cmds.setKeyframe(self.ctrl_grp, attribute="translateY", t=frame, v=tri[2][1])
+            cmds.setKeyframe(self.ctrl_grp, attribute="translateZ", t=frame, v=tri[2][2])
             cmds.keyTangent(self.ctrl_grp, e=True, weightedTangents=True)
             cmds.keyTangent(self.ctrl_grp, e=True, a=True, t=(frame,), outWeight=8)
             cmds.setKeyframe(self.scale_ctrl, attribute="scaleY", t=frame, v=1)
@@ -330,34 +308,20 @@ class Ball:
 
             # Ground
             frame = int(frame + 1)
-            cmds.setKeyframe(
-                self.ctrl_grp, attribute="translateX", t=frame, v=tri[1][0]
-            )
-            cmds.setKeyframe(
-                self.ctrl_grp, attribute="translateY", t=frame, v=tri[1][1]
-            )
-            cmds.setKeyframe(
-                self.ctrl_grp, attribute="translateZ", t=frame, v=tri[1][2]
-            )
+            cmds.setKeyframe(self.ctrl_grp, attribute="translateX", t=frame, v=tri[1][0])
+            cmds.setKeyframe(self.ctrl_grp, attribute="translateY", t=frame, v=tri[1][1])
+            cmds.setKeyframe(self.ctrl_grp, attribute="translateZ", t=frame, v=tri[1][2])
 
-            face_normal = mobius_stair.faces_normals_ordered[
-                i % len(mobius_stair.faces_normals_ordered)
-            ]
+            face_normal = mobius_stair.faces_normals_ordered[i % len(mobius_stair.faces_normals_ordered)]
             normal_vector = om.MVector(*face_normal)
 
             # Compute offset so bottom of ball touches stair
             offset_vector = normal_vector * self.radius
             ground_pos = om.MVector(*tri[1]) + offset_vector
             # Apply translation
-            cmds.setKeyframe(
-                self.ctrl_grp, attribute="translateX", t=frame, v=ground_pos.x
-            )
-            cmds.setKeyframe(
-                self.ctrl_grp, attribute="translateY", t=frame, v=ground_pos.y
-            )
-            cmds.setKeyframe(
-                self.ctrl_grp, attribute="translateZ", t=frame, v=ground_pos.z
-            )
+            cmds.setKeyframe(self.ctrl_grp, attribute="translateX", t=frame, v=ground_pos.x)
+            cmds.setKeyframe(self.ctrl_grp, attribute="translateY", t=frame, v=ground_pos.y)
+            cmds.setKeyframe(self.ctrl_grp, attribute="translateZ", t=frame, v=ground_pos.z)
 
             # ALIGN PIVOT TO FACE NORMAL
             self.align_pivot_to_face_normal(normal_vector, up_axis="y")
