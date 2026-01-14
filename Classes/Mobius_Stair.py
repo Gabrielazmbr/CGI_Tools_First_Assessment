@@ -13,6 +13,10 @@ class Mobius_stair:
         s_height=20,
         name="Stairs",
     ):
+        """
+        Stores all geometric and subdivision parameters used to
+        generate the Stair geometry.
+        """
         self.depth = depth
         self.width = width
         self.height = height
@@ -22,6 +26,10 @@ class Mobius_stair:
         self.name = name
 
     def select_stairs_mesh(self):
+        """
+        Helper function to allow access
+        to face data such as normals, vertices, and centers.
+        """
         # Get the DAG path for the mesh shape
         sel = om.MSelectionList()
         sel.add(self.name)
@@ -32,6 +40,11 @@ class Mobius_stair:
         return mesh_fn
 
     def make_strip(self):
+        """
+        Builds a stepped strip by extruding faces of a subdivided cube,
+        then deforms it into a Möbius-like stair using twist and bend
+        deformers. Identifies and stores the faces suitable for bouncing.
+        """
         self.stairs = cmds.polyCube(
             n=self.name,
             w=self.width,
@@ -53,7 +66,9 @@ class Mobius_stair:
                 bottom_faces.append(f)
 
         top_face_groups = [top_faces[i : i + 1] for i in range(0, len(top_faces), 1)]
-        bottom_face_groups = [bottom_faces[i : i + 1] for i in range(0, len(bottom_faces), 1)]
+        bottom_face_groups = [
+            bottom_faces[i : i + 1] for i in range(0, len(bottom_faces), 1)
+        ]
 
         l_scale_z = 0
         step = 0.8
@@ -62,7 +77,9 @@ class Mobius_stair:
         for i, face_range in enumerate(top_face_groups):
             start = face_range[0]
             end = face_range[-1]
-            cmds.polyExtrudeFacet(f"{self.stairs}.f[{start}:{end}]", kft=True, ltz=l_scale_z)
+            cmds.polyExtrudeFacet(
+                f"{self.stairs}.f[{start}:{end}]", kft=True, ltz=l_scale_z
+            )
 
             if i < mid_stairs:
                 if i <= q_stairs:
@@ -81,7 +98,9 @@ class Mobius_stair:
         for i, face_range in enumerate(bottom_face_groups):
             start = face_range[0]
             end = face_range[-1]
-            cmds.polyExtrudeFacet(f"{self.stairs}.f[{start}:{end}]", kft=True, ltz=l_scale_z)
+            cmds.polyExtrudeFacet(
+                f"{self.stairs}.f[{start}:{end}]", kft=True, ltz=l_scale_z
+            )
 
             if i <= mid_stairs:
                 if i <= q_stairs:
@@ -121,12 +140,20 @@ class Mobius_stair:
         cmds.select(self.stairs)
         cmds.CenterPivot(self.stairs)
         cmds.DeleteHistory(self.stairs)
-        cmds.makeIdentity(self.stairs, apply=True, translate=True, rotate=True, scale=True)
+        cmds.makeIdentity(
+            self.stairs, apply=True, translate=True, rotate=True, scale=True
+        )
         cmds.setAttr(f"{self.stairs}.rotate", 90, 0, 0)
-        cmds.makeIdentity(self.stairs, apply=True, translate=True, rotate=True, scale=True)
+        cmds.makeIdentity(
+            self.stairs, apply=True, translate=True, rotate=True, scale=True
+        )
         return self.bounce_faces
 
     def get_face_center(self):
+        """
+        Computes and stores the center point of each bounce face
+        and reorders them to form a continuous traversal path.
+        """
         stairs_obj = self.select_stairs_mesh()
         self.centers = []
 
@@ -147,9 +174,15 @@ class Mobius_stair:
         # Find midpoint
         midpoint = len(self.centers) // 2
         # reordered list
-        self.centers_ordered = self.centers[:midpoint] + self.centers[: midpoint - 1 : -1]
+        self.centers_ordered = (
+            self.centers[:midpoint] + self.centers[: midpoint - 1 : -1]
+        )
 
     def get_face_normal(self):
+        """
+        Extracts and stores normals of the bounce faces,
+        reordering them to match the face center order.
+        """
         stairs_obj = self.select_stairs_mesh()
         self.faces_normals = []
 
@@ -160,4 +193,6 @@ class Mobius_stair:
         # Find midpoint
         midpoint = len(self.faces_normals) // 2
         # reordered list
-        self.faces_normals_ordered = self.faces_normals[:midpoint] + self.faces_normals[: midpoint - 1 : -1]
+        self.faces_normals_ordered = (
+            self.faces_normals[:midpoint] + self.faces_normals[: midpoint - 1 : -1]
+        )

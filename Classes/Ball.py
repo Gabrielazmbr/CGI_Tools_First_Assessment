@@ -7,6 +7,10 @@ import numpy as np
 
 class Ball:
     def __init__(self, radius, name):
+        """
+        Creates the ball geometry in Maya, positions it at a default start
+        location, and cleans its transforms and construction history.
+        """
         self.radius = radius
         self.name = name
         pX = 0
@@ -22,6 +26,10 @@ class Ball:
         )
 
     def ball_rig(self):
+        """
+        Builds a simple rig for the ball using control curves for translation,
+        rotation, and squash/stretch, and parents them in a clean hierarchy.
+        """
         # Create the rotate and squash control curve
         self.ctrl_grp = cmds.circle(name="ctrl_grp", normal=(0, 0.5, 0), radius=2)[0]
 
@@ -59,6 +67,10 @@ class Ball:
         return self.ctrl_grp
 
     def apex_from_face_normals(self, A, B, nA, nB, height):
+        """
+        Creates the apex point of a bounce by averaging two face centers
+        and extruding along the averaged face normal by a given height.
+        """
         A = np.array(A, dtype=float)
         B = np.array(B, dtype=float)
         nA = np.array(nA, dtype=float)
@@ -73,6 +85,10 @@ class Ball:
         return apex
 
     def bounce_path_10sec(self, mobius_stair):
+        """
+        Generates a shortened bounce path by sampling every second face
+        of the stair, creating a faster 10-second animation path.
+        """
         self.triangles = []
         self.triangle_normals = []
         verts = mobius_stair.centers_ordered
@@ -103,6 +119,9 @@ class Ball:
                 self.triangle_normals.append((nA, nC))
 
     def bounce_path_25sec(self, mobius_stair):
+        """
+        Generates a bounce path using all face centers.
+        """
         self.triangles = []
         self.triangle_normals = []
         verts = mobius_stair.centers_ordered
@@ -132,7 +151,8 @@ class Ball:
 
     def line_on_path(self, curve_name="path"):
         """
-        Helper function.
+        Helper function that creates a linear curve to vizualice
+        the bounce path, based on the triangule vertices.
         """
         flat_pts = []
         for tri in self.triangles:
@@ -148,6 +168,11 @@ class Ball:
         return curve
 
     def align_pivot_to_face_normal(self, normal, up_axis="y"):
+        """
+        Computes and applies a smooth rotation so the control group's
+        up axis aligns with a given face normal. It uses quaternions to
+        avoid gimbal lock. Then converts to Euler for use in Maya.
+        """
         # Create a rotation that aligns up axis with the face normal.
         if up_axis.lower() == "x":
             up = om.MVector(1, 0, 0)
@@ -234,6 +259,10 @@ class Ball:
         return tuple(adjusted)
 
     def bounce(self, mobius_stair):
+        """
+        Animates the ball along the generated bounce path by setting
+        translation, rotation, and squash/stretch keyframes over time.
+        """
         start_frame = 1
         frame = start_frame
         time_gap = 15  # 15 -> 25 sec version , 12 -> 10 sec version
